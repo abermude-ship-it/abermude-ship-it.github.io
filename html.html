@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<button class="btn secondary" data-decr="${id}">-</button>
+<div style="padding:6px 8px;border:1px solid #e6efe6;border-radius:6px">${qty}</div>
+<button class="btn" data-incr="${id}">+</button>
+<button class="btn secondary" style="margin-left:auto" data-remove="${id}">Remove</button>
+</div>
+</div>
+`;
+itemsEl.appendChild(item);
+}
+$('subtotal').textContent = format(subtotal);
+$('cartCount').textContent = count;
+// attach handlers
+document.querySelectorAll('[data-incr]').forEach(b=>b.addEventListener('click',e=>{
+const id=Number(e.currentTarget.getAttribute('data-incr')); const c = loadCart(); c[id]=(c[id]||0)+1; saveCart(c);
+}));
+document.querySelectorAll('[data-decr]').forEach(b=>b.addEventListener('click',e=>{
+const id=Number(e.currentTarget.getAttribute('data-decr')); const c = loadCart(); c[id]=(c[id]||0)-1; if(c[id]<=0) delete c[id]; saveCart(c);
+}));
+document.querySelectorAll('[data-remove]').forEach(b=>b.addEventListener('click',e=>{
+const id=Number(e.currentTarget.getAttribute('data-remove')); const c = loadCart(); delete c[id]; saveCart(c);
+}));
+}
+
+
+// Cart open/close
+const cartSide = $('cartSide');
+$('openCart').addEventListener('click',()=>{ cartSide.classList.add('open'); updateCartUI(); });
+$('closeCart').addEventListener('click',()=>cartSide.classList.remove('open'));
+
+
+// Flash animation for add to cart
+function flashCartCount(){
+const el = $('cartCount'); el.style.transform='scale(1.3)'; setTimeout(()=>el.style.transform='scale(1)',200);
+}
+
+
+// Checkout flow
+$('checkoutBtn').addEventListener('click',()=>{
+const cart = loadCart(); if(Object.keys(cart).length===0){ alert('Your cart is empty.'); return; }
+$('checkoutForm').style.display='block';
+});
+
+
+$('cancelCheckout').addEventListener('click',()=>{$('checkoutForm').style.display='none'});
+
+
+$('form').addEventListener('submit',e=>{
+e.preventDefault(); const cart = loadCart(); if(Object.keys(cart).length===0){ alert('Cart empty'); return; }
+// build order
+const items=[]; let total=0;
+for(const idStr in cart){ const id=Number(idStr); const qty=cart[id]; const p = productsData.find(x=>x.id===id); items.push({name:p.name,qty,price:p.price}); total += p.price*qty; }
+const order = {id: 'ORD'+Date.now(),name:$('fullname').value,email:$('email').value,address:$('address').value,items,total};
+localStorage.setItem('ecocart_demo_last_order', JSON.stringify(order));
+// show success
+$('orderSuccess').style.display='block';
+$('orderSummary').textContent = `Order ${order.id} — ${order.items.length} item(s). Total: ${format(order.total)}. A confirmation would be emailed to ${order.email} (demo).`;
+// clear cart
+localStorage.removeItem(CART_KEY); updateCartUI(); $('checkoutForm').style.display='none'; cartSide.classList.remove('open');
+});
+
+
+// Initialization
+renderProducts(); updateCartUI();
+
+
+// Expose a helper to export product list as JSON for building a hosted store
+window.exportProductsJSON = ()=>JSON.stringify(productsData, null, 2);
+</script>
+</body>
+</html>
